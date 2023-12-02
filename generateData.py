@@ -1,4 +1,4 @@
-class Element:
+class ElementType:
     # an abstract representation of the water
     def __init__(self, type):
         self.type = type
@@ -58,6 +58,21 @@ class Vial:
     
     def isEmpty(self):
         return self.contents.count(None) == len(self.contents)
+    
+    def hasSpace(self):
+        return self.contents.count(None) != 0
+    
+    def getCountOfEmptySpaces(self):
+        return self.contents.count(None)
+    
+    def __str__(self):
+        output = ""
+        for item in self.contents:
+            if item == None:
+                output += "_"
+            else:
+                output += item.type
+        return output
 
 
 
@@ -69,6 +84,7 @@ class DataGenerator:
     '''
     def __init__(self, colors, numVials):
         self.vials = []
+        self.numberOfEmpty = numVials - len(colors)
         # generates the full vials
         for i in range(len(colors)):
             currentColor = colors[i]
@@ -81,25 +97,62 @@ class DataGenerator:
 
     def makeMove(self, vialIndex):
         '''
-            Make a move and return the 
+            Make a move; returns whether a successful move was able to be made
         '''
         indices = [i for i in range(len(self.vials))]
-        randomizedIndices = random.shuffle(indices)
-        for index in randomizedIndices:
+        random.shuffle(indices)
+        for index in indices:
             if index != vialIndex:
-                if self.vials[index].isEmpty():
-                    # make Move
+                if self.vials[index].hasSpace():
+                    self.pourFromOneIntoOther(vialIndex, index)
                     return True
         return False
+    
+    def pourFromOneIntoOther(self, senderVialIndex, receiverVialIndex):
+        senderVial = self.vials[senderVialIndex]
+        senderVialContents = senderVial.pourOut()
+        receiverVial = self.vials[receiverVialIndex]
+        receiverVial.pourIn(senderVialContents)
+    
+    def ensureEmpty(self):
+        # get emptiest vial index
+        emptiedVials = []
+        for j in range(self.numberOfEmpty):
+            emptyCount = None
+            emptiestVial = None
+
+            for i in range(len(self.vials)):
+                if i not in emptiedVials:
+                    vial = self.vials[i]
+                    count = vial.getCountOfEmptySpaces()
+                    if emptiestVial == None or emptyCount < count:
+                        emptiestVial = i
+                        emptyCount = count
+            emptiedVials.append(emptiestVial)
+
+            while not self.vials[emptiestVial].isEmpty():
+                for i in range(len(self.vials)):
+                    if i != emptiestVial and i not in emptiedVials and self.vials[i].hasSpace():
+                        self.pourFromOneIntoOther(emptiestVial, i)
+
 
     def generate(self, amountOfShuffling = 150):
         for i in range(amountOfShuffling):
             vialIndex = random.randrange(len(self.vials))
             self.makeMove(vialIndex)
-        pass
+        self.ensureEmpty()
 
-    def outputToText():
-        pass
+
+    def print(self):
+        for vial in self.vials:
+            print(vial)
 
 import random
 random.seed()
+
+# try generating
+types = [ElementType("*"), ElementType("#"), ElementType("%"), ElementType("^"), ElementType("&"), ElementType("@"), ElementType("[")]
+numEmpty = 2
+dataGenerator = DataGenerator(types, len(types) + numEmpty)
+dataGenerator.generate()
+dataGenerator.print()
